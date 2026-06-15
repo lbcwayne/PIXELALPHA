@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel A- @ Bradjonny</title>
+    <style>
+        :root { --bg: #000; --panel: #111; --border: #333; --text: #fff; --sub: #666; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 300px; padding: 20px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+        .panel { display: flex; flex-direction: column; gap: 8px; }
+        .label { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; }
+        input[type="file"], select, input[type="text"] { width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px; outline: none; }
+        input[type="range"] { width: 100%; accent-color: #fff; margin-top: 4px; }
+        .row { display: flex; gap: 6px; align-items: center; }
+        .swatch { flex: 1; height: 24px; border-radius: 4px; border: 1px solid var(--border); position: relative; overflow: hidden; cursor: pointer; }
+        .swatch input { position: absolute; inset: -50%; width: 200%; height: 200%; opacity: 0; cursor: pointer; }
+        .mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .mode-grid select { padding: 4px; font-size: 10px; text-align: center; }
+        .mode-label { font-size: 9px; color: var(--sub); text-align: center; margin-bottom: 2px; }
+        .font-btn { padding: 10px; background: var(--bg); border: 1px dashed var(--border); border-radius: 4px; text-align: center; font-size: 11px; cursor: pointer; transition: 0.2s; user-select: none; line-height: 1.4; }
+        .font-btn:hover { border-color: #fff; }
+        .font-btn.loading { opacity: 0.5; pointer-events: none; }
+        .font-btn.success { border-color: #4f4; color: #4f4; border-style: solid; }
+        button { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; font-weight: 600; cursor: pointer; text-transform: uppercase; margin-top: 4px; line-height: 1.4; }
+        button:hover { background: #fff; color: #000; }
+        .canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #050505; }
+        canvas { box-shadow: 0 0 0 1px var(--border); max-width: 90%; max-height: 90%; image-rendering: pixelated; }
+        .credits { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); text-align: center; font-size: 9px; color: var(--sub); line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">PIXEL ALPHA1.0</div>
+        
+        <div class="panel">
+            <div class="label">Image / 图像</div>
+            <input type="file" id="imgInput" accept="image/*">
+            <div id="imgStatus" style="font-size:10px;color:#f55;display:none;"></div>
+        </div>
+
+        <div class="panel">
+            <div class="label">Resolution / 分辨率 <span id="resVal">40</span></div>
+            <input type="range" id="resRange" min="10" max="120" value="40">
+        </div>
+
+        <div class="panel">
+            <div class="label">Brightness / 亮度 <span id="briVal">0</span></div>
+            <input type="range" id="briRange" min="-100" max="100" value="0">
+            <div class="label">Contrast / 对比度 <span id="conVal">0</span></div>
+            <input type="range" id="conRange" min="-100" max="100" value="0">
+        </div>
+
+        <div class="panel">
+            <div class="label">Render Mode / 渲染模式</div>
+            <div class="mode-grid">
+                <div>
+                    <div class="mode-label">LIGHT / 亮部</div>
+                    <select id="mLight">
+                        <option value="solid">Solid / 实心</option>
+                        <option value="grid" selected>3x3 Grid / 网格</option>
+                        <option value="micro">Micro / 微像素</option>
+                        <option value="char">Char / 字符</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="mode-label">MID / 中调</div>
+                    <select id="mMid">
+                        <option value="solid">Solid / 实心</option>
+                        <option value="grid" selected>3x3 Grid / 网格</option>
+                        <option value="micro">Micro / 微像素</option>
+                        <option value="char">Char / 字符</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="mode-label">DARK / 暗部</div>
+                    <select id="mDark">
+                        <option value="solid">Solid / 实心</option>
+                        <option value="grid" selected>3x3 Grid / 网格</option>
+                        <option value="micro">Micro / 微像素</option>
+                        <option value="char">Char / 字符</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="label">Chars (3) / 字符 (3个)</div>
+            <input type="text" id="charsInput" value="#A@" maxlength="3">
+        </div>
+
+        <div class="panel">
+            <div class="label">Palette / 调色板</div>
+            <div class="row">
+                <div class="swatch" id="s0"><input type="color" id="c0" value="#e0e0e0"></div>
+                <div class="swatch" id="s1"><input type="color" id="c1" value="#888888"></div>
+                <div class="swatch" id="s2"><input type="color" id="c2" value="#333333"></div>
+            </div>
+            <div class="row" style="margin-top:4px;">
+                <span style="font-size:10px;color:#666;width:20px;">BG / 背景</span>
+                <div class="swatch" id="sBg"><input type="color" id="cBg" value="#ffffff"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="label">Custom Font / 自定义字体</div>
+            <div class="font-btn" id="fontBtn">➕ Upload Font / 上传字体<br><span style="font-size:9px;color:#666">.ttf / .woff / .otf</span></div>
+            <input type="file" id="fontInput" accept=".ttf,.woff,.otf" style="display:none">
+        </div>
+
+        <div style="margin-top:auto;">
+            <button id="dlPng">Export PNG / 导出透明背景</button>
+            <button id="dlJpg">Export JPG / 导出带背景</button>
+            <button id="dlSvg" style="margin-top:8px;border-color:#fff;">Export SVG / 导出真矢量</button>
+        </div>
+
+        <div class="credits">DESIGN & PRODUCE BY BRADJONNY<br>设计制作 / 小红书 @BRADJONNY<br>Copyright (c) 2026 BRADJONNY. All rights reserved.
+
+This software and its source code are proprietary and confidential.
+No license is granted to copy, modify, merge, publish, distribute,
+sublicense, or sell copies of this software without prior written
+permission from the copyright holder.
+</div>
+    </div>
+
+    <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+
+<script>
+const state = { img: null, font: null, bayer3: [[0,7,2],[5,4,3],[6,1,8]], bayer2: [[0,2],[3,1]] };
+const el = (id) => document.getElementById(id);
+const cv = el('cv');
+const ctx = cv.getContext('2d', { willReadFrequently: true });
+
+// 颜色预览初始化
+['c0','c1','c2','cBg'].forEach((id, i) => {
+    const input = el(id);
+    const swatch = el(['s0','s1','s2','sBg'][i]);
+    const update = () => swatch.style.backgroundColor = input.value;
+    input.addEventListener('input', () => { update(); render(); });
+    update();
+});
+
+// 滑块数值显示
+[['resRange','resVal'],['briRange','briVal'],['conRange','conVal']].forEach(([r,v]) => {
+    el(r).addEventListener('input', () => { el(v).textContent = el(r).value; render(); });
+});
+['mLight','mMid','mDark','charsInput'].forEach(id => el(id).addEventListener('input', render));
+
+// 图片上传
+el('imgInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const status = el('imgStatus');
+    if (!file) return;
+    status.style.display = 'block';
+    status.textContent = '⏳ Loading... / 加载中...';
+    status.style.color = '#aaa';
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => { state.img = img; status.textContent = 'Loaded / 加载成功: ' + file.name; status.style.color = '#c6c6c6'; render(); };
+        img.onerror = () => { status.textContent = '❌ Invalid image / 无效图片'; status.style.color = '#f55'; };
+        img.src = evt.target.result;
+    };
+    reader.onerror = () => { status.textContent = '❌ Read failed / 读取失败'; status.style.color = '#f55'; };
+    reader.readAsDataURL(file);
+});
+
+// 字体加载
+const fontBtn = el('fontBtn');
+const fontInput = el('fontInput');
+fontBtn.addEventListener('click', () => { if (!fontBtn.classList.contains('loading')) fontInput.click(); });
+fontInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fontBtn.classList.add('loading');
+    fontBtn.innerHTML = '⏳ Loading font... / 字体加载中...';
+    try {
+        const buffer = await file.arrayBuffer();
+        const fontName = 'CustomFont_' + Date.now();
+        const fontFace = new FontFace(fontName, buffer);
+        await fontFace.load();
+        document.fonts.add(fontFace);
+        state.font = fontName;
+        fontBtn.classList.remove('loading');
+        fontBtn.classList.add('success');
+        fontBtn.innerHTML = '✅ Loaded / 加载成功:<br>' + file.name;
+        setTimeout(() => { 
+            fontBtn.classList.remove('success'); 
+            fontBtn.innerHTML = '➕ Upload Font / 上传字体<br><span style="font-size:9px;color:#666">.ttf / .woff / .otf</span>'; 
+        }, 3000);
+        render();
+    } catch (err) {
+        fontBtn.classList.remove('loading');
+        fontBtn.innerHTML = '❌ Failed / 加载失败';
+        setTimeout(() => { 
+            fontBtn.innerHTML = '➕ Upload Font / 上传字体<br><span style="font-size:9px;color:#666">.ttf / .woff / .otf</span>'; 
+        }, 3000);
+    }
+});
+
+// 获取预处理像素数据
+function getProcessedPixels() {
+    if (!state.img) return null;
+    const res = parseInt(el('resRange').value);
+    const bri = parseInt(el('briRange').value);
+    const con = parseInt(el('conRange').value);
+    const aspect = state.img.width / state.img.height;
+    const cols = res;
+    const rows = Math.round(res / aspect);
+    
+    const tmp = document.createElement('canvas');
+    tmp.width = cols; tmp.height = rows;
+    const tCtx = tmp.getContext('2d');
+    tCtx.imageSmoothingEnabled = false;
+    const cFactor = (259 * (con + 255)) / (255 * (259 - con));
+    tCtx.filter = `brightness(${100 + bri}%) contrast(${cFactor * 100}%)`;
+    tCtx.drawImage(state.img, 0, 0, cols, rows);
+    
+    return { data: tCtx.getImageData(0, 0, cols, rows).data, cols, rows };
+}
+
+// 核心绘制逻辑
+function executeDraw(targetCtx, px, cellSize, drawBackground) {
+    const chars = el('charsInput').value.padEnd(3, '#').slice(0, 3);
+    const colors = [el('c0').value, el('c1').value, el('c2').value];
+    const bg = el('cBg').value;
+    const modes = [el('mLight').value, el('mMid').value, el('mDark').value];
+
+    if (drawBackground) {
+        targetCtx.fillStyle = bg;
+        targetCtx.fillRect(0, 0, px.cols * cellSize, px.rows * cellSize);
+    } else {
+        targetCtx.clearRect(0, 0, px.cols * cellSize, px.rows * cellSize);
+    }
+
+    for (let y = 0; y < px.rows; y++) {
+        for (let x = 0; x < px.cols; x++) {
+            const i = (y * px.cols + x) * 4;
+            if (px.data[i + 3] < 128) continue; 
+            
+            const lum = (0.299 * px.data[i] + 0.587 * px.data[i+1] + 0.114 * px.data[i+2]) / 255;
+            const zone = lum > 0.66 ? 0 : lum > 0.33 ? 1 : 2;
+            const mode = modes[zone];
+            const color = colors[zone];
+            const cx = x * cellSize, cy = y * cellSize;
+            
+            targetCtx.fillStyle = color;
+            drawCell(targetCtx, mode, cx, cy, cellSize, lum, color, chars[zone], state.font);
+        }
+    }
+}
+
+// Canvas 屏幕渲染引擎
+function render() {
+    if (!state.img) {
+        cv.width = 400; cv.height = 400;
+        ctx.fillStyle = el('cBg').value;
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.fillStyle = '#333'; ctx.font = '14px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText('Upload an image / 请上传图像', 200, 200);
+        return;
+    }
+    const px = getProcessedPixels();
+    if (!px) return;
+    
+    const cell = Math.max(4, Math.min(600 / px.cols, 600 / px.rows));
+    cv.width = px.cols * cell;
+    cv.height = px.rows * cell;
+    
+    executeDraw(ctx, px, cell, true);
+}
+
+// 通用单元格绘制函数
+function drawCell(target, mode, x, y, size, lum, color, char, font) {
+    const isSvg = typeof target === 'string'; 
+    let svgParts = [];
+    
+    if (mode === 'solid') {
+        if (isSvg) svgParts.push(`<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${color}"/>`);
+        else target.fillRect(x, y, size, size);
+    } 
+    else if (mode === 'grid') {
+        const sub = size / 3;
+        for (let dy = 0; dy < 3; dy++) {
+            for (let dx = 0; dx < 3; dx++) {
+                if (lum > (state.bayer3[dy][dx] + 0.5) / 9) {
+                    if (isSvg) svgParts.push(`<rect x="${x + dx * sub}" y="${y + dy * sub}" width="${sub - 0.3}" height="${sub - 0.3}" fill="${color}"/>`);
+                    else target.fillRect(x + dx * sub, y + dy * sub, sub - 0.3, sub - 0.3);
+                }
+            }
+        }
+    } 
+    else if (mode === 'micro') {
+        const sub = size / 2;
+        for (let dy = 0; dy < 2; dy++) {
+            for (let dx = 0; dx < 2; dx++) {
+                if (lum > (state.bayer2[dy][dx] + 0.5) / 4) {
+                    if (isSvg) svgParts.push(`<rect x="${x + dx * sub}" y="${y + dy * sub}" width="${sub - 0.3}" height="${sub - 0.3}" fill="${color}"/>`);
+                    else target.fillRect(x + dx * sub, y + dy * sub, sub - 0.3, sub - 0.3);
+                }
+            }
+        }
+    } 
+    else if (mode === 'char') {
+        if (isSvg) {
+            svgParts.push(`<text x="${x + size/2}" y="${y + size/2 + size*0.05}" font-size="${size * 0.8}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="${font || 'monospace'}">${escapeXml(char)}</text>`);
+        } else {
+            target.font = `${size * 0.8}px ${font || 'monospace'}`;
+            target.textAlign = 'center';
+            target.textBaseline = 'middle';
+            target.fillText(char, x + size/2, y + size/2 + size*0.05);
+        }
+    }
+    return isSvg ? svgParts.join('\n') : null;
+}
+
+// ✅ 修复：PNG/JPG 导出与原图等大
+function exportImage(format) {
+    if (!state.img) return alert('Please upload an image first / 请先上传图像');
+    const px = getProcessedPixels();
+    if (!px) return;
+
+    // 关键：根据原图实际尺寸反推每个网格单元的像素大小
+    // 确保输出画布宽高严格等于原图宽高
+    const exportCellW = state.img.width / px.cols;
+    const exportCellH = state.img.height / px.rows;
+    // 取平均值保证正方形网格，或使用 Math.max 避免缝隙
+    const exportCell = Math.max(exportCellW, exportCellH); 
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = state.img.width;
+    offCanvas.height = state.img.height;
+    const offCtx = offCanvas.getContext('2d');
+
+    // 关闭平滑，保持像素锐利
+    offCtx.imageSmoothingEnabled = false;
+
+    const drawBg = format === 'jpg';
+    executeDraw(offCtx, px, exportCell, drawBg);
+
+    const a = document.createElement('a');
+    if (format === 'png') {
+        a.download = 'blockpro-transparent.png';
+        a.href = offCanvas.toDataURL('image/png');
+    } else {
+        a.download = 'blockpro.jpg';
+        a.href = offCanvas.toDataURL('image/jpeg', 0.92);
+    }
+    a.click();
+}
+
+el('dlPng').onclick = () => exportImage('png');
+el('dlJpg').onclick = () => exportImage('jpg');
+
+// SVG 导出
+el('dlSvg').onclick = () => {
+    if (!state.img) return alert('Please upload an image first / 请先上传图像');
+    const px = getProcessedPixels();
+    if (!px) return;
+    
+    const chars = el('charsInput').value.padEnd(3, '#').slice(0, 3);
+    const colors = [el('c0').value, el('c1').value, el('c2').value];
+    const bg = el('cBg').value;
+    const modes = [el('mLight').value, el('mMid').value, el('mDark').value];
+    const cell = 100; 
+    const w = px.cols * cell;
+    const h = px.rows * cell;
+    
+    let svgContent = [`<rect width="${w}" height="${h}" fill="${bg}"/>`];
+    
+    for (let y = 0; y < px.rows; y++) {
+        for (let x = 0; x < px.cols; x++) {
+            const i = (y * px.cols + x) * 4;
+            if (px.data[i + 3] < 128) continue;
+            const lum = (0.299 * px.data[i] + 0.587 * px.data[i+1] + 0.114 * px.data[i+2]) / 255;
+            const zone = lum > 0.66 ? 0 : lum > 0.33 ? 1 : 2;
+            const result = drawCell('svg', modes[zone], x * cell, y * cell, cell, lum, colors[zone], chars[zone], state.font);
+            if (result) svgContent.push(result);
+        }
+    }
+    
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">\n${svgContent.join('\n')}\n</svg>`;
+    
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'blockpro-vector.svg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+function escapeXml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+render();
+</script>
+</body>
+</html>
